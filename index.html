@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en_US" style="width: 100%; height: 100%;">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MBWPV5QJ5S"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-MBWPV5QJ5S');
+</script>
+<meta charset="utf-8" />
+<title>World Wildfire Locator</title>
+<meta name="description" content="A real-time 3D map of wildfires all around the world. This data visualization was produced by Akihiko Kusanagi." />
+<meta name="viewport" content="user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, width=device-width, height=device-height, initial-scale=1" />
+<meta property="og:title" content="World Wildfire Locator" />
+<meta property="og:description" content="A real-time 3D map of wildfires all around the world. This data visualization was produced by Akihiko Kusanagi." />
+<meta property="og:locale" content="en_US" />
+<link rel="canonical" href="https://nagix.github.io/world-wildfire-locator" />
+<meta property="og:url" content="https://nagix.github.io/world-wildfire-locator" />
+<meta property="og:site_name" content="World Wildfire Locator" />
+<meta property="og:image" content="https://nagix.github.io/world-wildfire-locator/screenshot1.jpg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@nagix" />
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+#fire { position: absolute; top: 0; bottom: 0; width: 100%; pointer-events: none; }
+.tooltip {
+    color: rgb(255, 255, 255);
+    background-color: rgba(0, 0, 0, 0.7);
+    position: absolute;
+    padding: 4px 10px;
+    pointer-events: none;
+    z-index: 1;
+}
+.tooltip.hidden { display: none; }
+.selector {
+    top: 10px;
+    left: 10px;
+    width: 300px;
+    height: 40px;
+    padding: 0 10px;
+    border-radius: 10px;
+    position: absolute;
+    z-index: 1;
+}
+.mapboxgl-ctrl-group {
+    border-radius: 10px;
+}
+.mapboxgl-ctrl-group button {
+    width: 39px;
+    height: 39px;
+}
+.mapboxgl-ctrl-group button:focus:first-child,
+.mapboxgl-ctrl-group button:hover:first-child {
+    border-radius: 10px 10px 0 0;
+}
+.mapboxgl-ctrl-group button:focus:last-child,
+.mapboxgl-ctrl-group button:hover:last-child {
+    border-radius: 0 0 10px 10px;
+}
+.mapboxgl-ctrl-group button:focus:only-child,
+.mapboxgl-ctrl-group button:hover:only-child {
+    border-radius: inherit;
+}
+.mapboxgl-ctrl button.mapboxgl-ctrl-info .mapboxgl-ctrl-icon {
+    background: no-repeat center/21px url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23333'%3E%3Cpath d='M256 512c141.4 0 256-114.6 256-256S397.4 0 256 0S0 114.6 0 256S114.6 512 256 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-144c-17.7 0-32-14.3-32-32s14.3-32 32-32s32 14.3 32 32s-14.3 32-32 32z'%3E%3C/path%3E%3C/svg%3E");
+}
+.bg {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);;
+    display: none;
+    z-index: 99;
+}
+.info {
+    position: absolute;
+    top: 10px;
+    right: 60px;
+    width: 250px;
+    background-color: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+.info div:first-child {
+    height: 39px;
+    border-radius: 10px 10px 0 0;
+    background-color: #000;
+    color: #fff;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 39px;
+    pointer-events: none;
+}
+.info div:last-child {
+    padding: 0 10px;
+    border-radius: 0 0 10px 10px;
+    font-size: 14px;
+    line-height: 22px;
+}
+</style>
+</head>
+<body>
+<div id="map">
+  <div id="info-bg" class="bg">
+    <div class="info">
+      <div>About World Wildfire Locator</div>
+      <div>
+        <p><strong>How to use</strong></p>
+        <p>
+          Drag or arrow keys: Pan<br>
+          Mouse wheel or +/- keys: Zoom<br>
+          Right mouse or Ctrl + drag: Bearing/pitch<br>
+          Two-finger pinch: Bearing/zoom<br>
+          Two-finger drag: Pitch<br>
+          Shift + left/right arrow keys: Bearing<br>
+          Shift + up/down arrow keys: Pitch<br>
+        </p>
+        <hr>
+        <p>This data visualization is provided by <a href="https://nagix.github.io" target="_blank">Akihiko Kusanagi</a>. The wildfire data for this visualization are sourced from <a href="https://firms.modaps.eosdis.nasa.gov" target="_blank">Fire Information for Resource Management System (FIRMS)</a> by NASA.</p>
+        <p>Source code is available at <a href="https://github.com/nagix/world-wildfire-locator" target="_blank">GitHub repository</a>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.webgpu.js",
+            "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.webgpu.js",
+            "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.tsl.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/"
+        }
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+    import {range, texture, mix, uv, color, rotateUV, positionLocal, time, uniform} from 'three/tsl';
+    import WebGPU from 'three/addons/capabilities/WebGPU.js';
+
+    const REGIONS = {
+        'north-gyeongsang': {
+            label: 'North Gyeongsang Province, South Korea',
+            center: [129.12, 36.579],
+            zoom: 14
+        },
+        'imabari': {
+            label: 'Imabari, Japan',
+            center: [133.0445517, 33.988586],
+            zoom: 15
+        }
+    };
+
+    class MapboxGLButtonControl {
+
+        constructor(optionArray) {
+            this._options = optionArray.map(options => ({
+                className: options.className || '',
+                title: options.title || '',
+                eventHandler: options.eventHandler
+            }));
+        }
+
+        onAdd(map) {
+            const me = this;
+
+            me._map = map;
+
+            me._container = document.createElement('div');
+            me._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+
+            me._buttons = me._options.map(options => {
+                const button = document.createElement('button'),
+                    icon = document.createElement('span'),
+                    {className, title, eventHandler} = options;
+
+                button.className = className;
+                button.type = 'button';
+                button.title = title;
+                button.setAttribute('aria-label', title);
+                button.onclick = eventHandler;
+
+                icon.className = 'mapboxgl-ctrl-icon';
+                icon.setAttribute('aria-hidden', true);
+                button.appendChild(icon);
+
+                me._container.appendChild(button);
+
+                return button;
+            });
+
+            return me._container;
+        }
+
+        onRemove() {
+            const me = this;
+
+            me._container.parentNode.removeChild(me._container);
+            me._map = undefined;
+        }
+
+    }
+
+    let currentRegion = 'north-gyeongsang';
+
+    if (WebGPU.isAvailable() === false) {
+        document.body.appendChild(WebGPU.getErrorMessage());
+        throw new Error( 'No WebGPU support' );
+    }
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoibmFnaXgiLCJhIjoiY204cmRjdjQ1MDljdjJycW8xM25rYnI5ZCJ9.xhc6myaAhjgvWvdyimNzqA';
+    const map = new mapboxgl.Map({
+        container: 'map',
+        zoom: REGIONS[currentRegion].zoom,
+        center: REGIONS[currentRegion].center,
+        pitch: 60,
+        bearing: 0,
+        style: 'mapbox://styles/mapbox/satellite-streets-v12'
+    });
+
+    const infoBGElement = document.getElementById('info-bg');
+    infoBGElement.addEventListener('click', () => {
+        infoBGElement.style.display = 'none';
+        map.getContainer().focus();
+    });
+
+    map.addControl(new mapboxgl.NavigationControl({visualizePitch: true}));
+    map.addControl(new mapboxgl.FullscreenControl());
+    map.addControl(new MapboxGLButtonControl([{
+        className: 'mapboxgl-ctrl-info',
+        title: 'About World Wildfire Locator',
+        eventHandler() {
+            infoBGElement.style.display = 'block';
+        }
+    }]));
+
+    let hoveredCircleId = null;
+
+    let modelOrigin = mapboxgl.MercatorCoordinate.fromLngLat(REGIONS[currentRegion].center);
+    let modelScale = modelOrigin.meterInMercatorCoordinateUnits();
+
+    const SMOKE_COUNT = 2000;
+    const FIRE_COUNT = 1000;
+
+    class Fire extends THREE.Group {
+
+        constructor(lngLat, resource) {
+            super();
+
+            this.userData.lngLat = lngLat;
+
+            const {x, y} = mapboxgl.MercatorCoordinate.fromLngLat(lngLat);
+            const {smokeGeometry, smokeNodeMaterial, fireGeometry, fireNodeMaterial} = resource;
+
+            const smokeInstancedSprite = new THREE.Mesh( smokeGeometry, smokeNodeMaterial );
+            smokeInstancedSprite.scale.setScalar( 400 );
+            smokeInstancedSprite.count = SMOKE_COUNT;
+            smokeInstancedSprite.position.y = 100;
+            this.add( smokeInstancedSprite );
+
+            const fireInstancedSprite = new THREE.Mesh( fireGeometry, fireNodeMaterial );
+            fireInstancedSprite.scale.setScalar( 400 );
+            fireInstancedSprite.count = FIRE_COUNT;
+            fireInstancedSprite.renderOrder = 1;
+            this.add( fireInstancedSprite );
+
+            this.position.x = (x - modelOrigin.x) / modelScale;
+            this.position.y = -(y - modelOrigin.y) / modelScale;
+            this.scale.setScalar( 0.125 );
+            this.rotateX( Math.PI / 2);
+        }
+
+        refreshElevation(map) {
+            this.position.z = map.queryTerrainElevation(this.userData.lngLat);
+        }
+
+        setZoom(zoom) {
+            this.scale.setScalar( Math.max( 0.125, Math.pow( 2, 11 - zoom ) ) );
+        }
+
+        destroy() {
+            // Todo
+        }
+
+    }
+
+    // configuration of the custom layer for a 3D model per the CustomLayerInterface
+    const customLayer = {
+        id: '3d-model',
+        type: 'custom',
+        renderingMode: '3d',
+        onAdd: function (map, gl) {
+            const {_fov, width, height} = map.transform;
+
+            this.map = map;
+            this.camera = new THREE.PerspectiveCamera(THREE.MathUtils.radToDeg(_fov), width / height);
+            this.scene = new THREE.Scene();
+
+            const textureLoader = new THREE.TextureLoader();
+            const smokeMap = textureLoader.load( 'https://threejs.org/examples/textures/opengameart/smoke1.png' );
+
+            // create nodes
+
+            const lifeRange = range( .1, 1 );
+            const offsetRange = range( new THREE.Vector3( - 2, 3, - 2 ), new THREE.Vector3( 2, 5, 2 ) );
+
+            const speed = uniform( .2 );
+            const scaledTime = time.add( 5 ).mul( speed );
+
+            const lifeTime = scaledTime.mul( lifeRange ).mod( 1 );
+            const scaleRange = range( .3, 2 );
+            const rotateRange = range( .1, 4 );
+
+            const life = lifeTime.div( lifeRange );
+
+            const fakeLightEffect = positionLocal.y.oneMinus().max( 0.2 );
+
+            const textureNode = texture( smokeMap, rotateUV( uv(), scaledTime.mul( rotateRange ) ) );
+
+            const opacityNode = textureNode.a.mul( life.oneMinus() );
+
+            const smokeColor = mix( color( 0x2c1501 ), color( 0x222222 ), positionLocal.y.mul( 3 ).clamp() );
+
+            // create particles
+
+            const smokeGeometry = new THREE.PlaneGeometry( 1, 1 );
+            const smokeNodeMaterial = new THREE.SpriteNodeMaterial();
+            smokeNodeMaterial.colorNode = mix( color( 0xf27d0c ), smokeColor, life.mul( 2.5 ).min( 1 ) ).mul( fakeLightEffect );
+            smokeNodeMaterial.opacityNode = opacityNode;
+            smokeNodeMaterial.positionNode = offsetRange.mul( lifeTime );
+            smokeNodeMaterial.scaleNode = scaleRange.mul( lifeTime.max( 0.3 ) );
+            smokeNodeMaterial.depthWrite = false;
+
+            //
+
+            const fireGeometry = new THREE.PlaneGeometry( 1, 1 );
+            const fireNodeMaterial = new THREE.SpriteNodeMaterial();
+            fireNodeMaterial.colorNode = mix( color( 0xb72f17 ), color( 0xb72f17 ), life );
+            fireNodeMaterial.positionNode = range( new THREE.Vector3( - 1, 1, - 1 ), new THREE.Vector3( 1, 2, 1 ) ).mul( lifeTime );
+            fireNodeMaterial.scaleNode = smokeNodeMaterial.scaleNode;
+            fireNodeMaterial.opacityNode = opacityNode.mul( .5 );
+            fireNodeMaterial.blending = THREE.AdditiveBlending;
+            fireNodeMaterial.transparent = true;
+            fireNodeMaterial.depthWrite = false;
+
+            // indirect draw ( optional )
+            // each indirect draw call is 5 uint32 values for indexes ( different structure for non-indexed draw calls using 4 uint32 values )
+
+            const indexCount = fireGeometry.index.array.length;
+
+            const uint32 = new Uint32Array( 5 );
+            uint32[ 0 ] = indexCount;   // indexCount
+            uint32[ 1 ] = FIRE_COUNT;    // instanceCount
+            uint32[ 2 ] = 0;            // firstIndex
+            uint32[ 3 ] = 0;            // baseVertex
+            uint32[ 4 ] = 0;            // firstInstance
+
+            const indirectAttribute = new THREE.IndirectStorageBufferAttribute( uint32, 5 );
+            fireGeometry.setIndirect( indirectAttribute );
+
+            //
+
+            this.fireResource = {smokeGeometry, smokeNodeMaterial, fireGeometry, fireNodeMaterial};
+            this.fires = {};
+
+            this.renderer = new THREE.WebGPURenderer( { antialias: true } );
+            this.renderer.setPixelRatio( window.devicePixelRatio );
+            this.renderer.setSize( window.innerWidth, window.innerHeight );
+            this.renderer.init();
+            map.getContainer().appendChild( customLayer.renderer.domElement );
+            customLayer.renderer.domElement.id = 'fire';
+        },
+        render: function (gl, matrix) {
+            const {map, renderer, camera, scene} = this,
+                {_fov, fovAboveCenter, _camera, _horizonShift, pixelsPerMeter, worldSize, _pitch, width, height, elevation} = map.transform,
+                halfFov = _fov / 2,
+                minElevationInPixels = elevation ? elevation.getMinElevationBelowMSL() * pixelsPerMeter : 0,
+                cameraToSeaLevelDistance = (_camera.position[2] * worldSize - minElevationInPixels) / Math.cos(_pitch),
+                topHalfSurfaceDistance = Math.sin(fovAboveCenter) * cameraToSeaLevelDistance / Math.sin(Math.max(Math.PI / 2.0 - _pitch - fovAboveCenter, 0.01)),
+                furthestDistance = Math.sin(_pitch) * topHalfSurfaceDistance + cameraToSeaLevelDistance,
+                horizonDistance = cameraToSeaLevelDistance / _horizonShift,
+                farZ = camera.far = Math.min(furthestDistance * 1.01, horizonDistance),
+                nearZ = camera.near = height / 50,
+                halfHeight = Math.tan(halfFov) * nearZ,
+                halfWidth = halfHeight * width / height,
+
+                m = new THREE.Matrix4().fromArray(matrix),
+                l = new THREE.Matrix4()
+                    .makeTranslation(modelOrigin.x, modelOrigin.y, modelOrigin.z)
+                    .scale(new THREE.Vector3(modelScale, -modelScale, modelScale))
+
+            camera.projectionMatrix.makePerspective(
+                -halfWidth, halfWidth, halfHeight, -halfHeight, nearZ, farZ
+            ).invert().multiply(m).multiply(l).invert()
+                .decompose(camera.position, camera.quaternion, camera.scale);
+
+            camera.far = 1e7;
+            camera.scale.x = camera.scale.y = camera.scale.z = 1;
+            camera.updateProjectionMatrix();
+
+            if (this.renderer.hasInitialized()) {
+                this.renderer.render(this.scene, this.camera);
+            }
+            this.map.triggerRepaint();
+        },
+        addFire: function (feature) {
+            if (!this.fires[feature.id]) {
+                const fire = new Fire(feature.geometry.coordinates, this.fireResource);
+                this.scene.add(fire);
+                this.fires[feature.id] = fire;
+            }
+        },
+        removeAllFires: function () {
+            for (const id of Object.keys(this.fires)) {
+                const fire = this.fires[id];
+                this.scene.remove(fire);
+                fire.destroy();
+                delete this.fires[id];
+            }
+        },
+        refreshElevation: function () {
+            for (const fire of Object.values(this.fires)) {
+                fire.refreshElevation(this.map);
+            }
+        },
+        setZoom: function (zoom) {
+            for (const fire of Object.values(this.fires)) {
+                fire.setZoom(zoom);
+            }
+        }
+    };
+
+    const tooltip = document.createElement('div');
+    Object.assign(tooltip, {
+        className: 'tooltip hidden'
+    });
+    map.getContainer().appendChild(tooltip);
+
+    const selector = document.createElement('select');
+    Object.assign(selector, {
+        className: 'selector',
+        innerHTML: Object.keys(REGIONS).map(id =>
+            `<option value="${id}">${REGIONS[id].label}</option>`
+        ).join('')
+    });
+    selector.addEventListener('input', e => {
+        customLayer.removeAllFires();
+        currentRegion = e.target.value;
+        const {center, zoom} = REGIONS[currentRegion];
+        modelOrigin = mapboxgl.MercatorCoordinate.fromLngLat(center);
+        modelScale = modelOrigin.meterInMercatorCoordinateUnits();
+        map.getSource('fire').setData(`https://mini-tokyo.appspot.com/fire?region=${currentRegion}`);
+        map.flyTo({center, zoom, bearing: 0, pitch: 60});
+    });
+    map.getContainer().appendChild(selector);
+
+    map.on('style.load', () => {
+        map.addSource('mapbox-dem', {
+            'type': 'raster-dem',
+            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            'tileSize': 512,
+            'maxzoom': 14
+        });
+        map.addSource('fire', {
+            'type': 'geojson',
+            'data': `https://mini-tokyo.appspot.com/fire?region=${currentRegion}`,
+            'attribution': '<a href="https://firms.modaps.eosdis.nasa.gov" target="_blank">NASA</a>',
+            'generateId': true
+        });
+        map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
+        map.addLayer(customLayer, 'waterway-label');
+        map.addLayer({
+            "id": "fire",
+            "type": "circle",
+            "source": "fire",
+            "paint": {
+                "circle-color": [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    [
+                        "case",
+                        ["==", ["get", "days"], 0],
+                        "rgb(168, 0, 0)",
+                        ["==", ["get", "days"], 1],
+                        "rgb(235, 0, 0)",
+                        ["==", ["get", "days"], 2],
+                        "rgb(230, 100, 0)",
+                        ["==", ["get", "days"], 3],
+                        "rgb(255, 180, 0)",
+                        ["==", ["get", "days"], 4],
+                        "rgb(255, 230, 175)",
+                        "rgb(255, 255, 190)"
+                    ],
+                    [
+                        "case",
+                        ["==", ["get", "days"], 0],
+                        "rgb(50, 0, 0)",
+                        ["==", ["get", "days"], 1],
+                        "rgb(30, 0, 0)",
+                        ["==", ["get", "days"], 2],
+                        "rgb(20, 0, 0)",
+                        ["==", ["get", "days"], 3],
+                        "rgb(10, 0, 0)",
+                        ["==", ["get", "days"], 4],
+                        "rgb(5, 0, 0)",
+                        "rgb(0, 0, 0)"
+                    ]
+                ],
+                "circle-radius": [
+                    "interpolate",
+                    ["exponential", 2],
+                    ["zoom"],
+                    12,
+                    20,
+                    22,
+                    20480
+                ],
+                "circle-blur": 0.5,
+                "circle-opacity": 0.5,
+                "circle-pitch-alignment": "map"
+            },
+            "layout": {
+                "circle-sort-key": ["get", "timestamp"]
+            }
+        }, 'waterway-label');
+    });
+
+    map.on('sourcedata', () => {
+        const features = map.querySourceFeatures('fire', {filter: [
+            'all',
+            ['==', ['get', 'region'], currentRegion],
+            ['<=', ['get', 'days'], 0]
+        ]});
+        for (const feature of features) {
+            customLayer.addFire(feature);
+        }
+        customLayer.refreshElevation(map);
+    });
+
+    map.on('zoom', () => {
+        customLayer.setZoom(map.getZoom());
+    })
+
+    map.on('resize', event => {
+        const camera = customLayer.camera,
+            {width, height} = event.target.transform;
+
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        customLayer.renderer.setSize( width, height );
+    });
+
+    map.on('mousemove', 'fire', e => {
+        if (e.features.length > 0) {
+            if (hoveredCircleId !== null) {
+                map.setFeatureState(
+                    { source: 'fire', id: hoveredCircleId },
+                    { hover: false }
+                );
+            }
+            hoveredCircleId = e.features[0].id;
+            map.setFeatureState(
+                { source: 'fire', id: hoveredCircleId },
+                { hover: true }
+            );
+        }
+
+        const now = Date.now() / 1000;
+        const timestamp = e.features[0].properties.timestamp;
+        tooltip.style.left = e.point.x + 4 + 'px';
+        tooltip.style.top = e.point.y + 4 + 'px';
+        tooltip.innerHTML = `${new Date(timestamp * 1000).toLocaleString()}<br>(${Math.floor((now - timestamp) / 3600)} hours ago)`;
+        tooltip.classList.remove('hidden');
+    });
+
+    map.on('mouseleave', 'fire', () => {
+        if (hoveredCircleId !== null) {
+            map.setFeatureState(
+                { source: 'fire', id: hoveredCircleId },
+                { hover: false }
+            );
+        }
+        hoveredCircleId = null;
+
+        tooltip.classList.add('hidden');
+    });
+
+</script>
+
+</body>
+</html>

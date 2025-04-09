@@ -147,12 +147,12 @@ body { margin: 0; padding: 0; }
     import WebGPU from 'three/addons/capabilities/WebGPU.js';
 
     const REGIONS = {
-//        '20250112/palisades': {
-//            label: 'Palisades, LA, USA [2025-01-12]',
-//            center: [-118.527, 34.11],
-//            zoom: 14,
-//            timestamp: 1736640000
-//        },
+        '20250112/palisades': {
+            label: 'Palisades, LA, USA [2025-01-12]',
+            center: [-118.527, 34.11],
+            zoom: 14,
+            timestamp: 1736640000
+        },
         '20250302/ofunato': {
             label: 'Ofunato, Japan [2025-03-02]',
             center: [141.8, 39.062],
@@ -229,7 +229,7 @@ body { margin: 0; padding: 0; }
 
     }
 
-    let currentRegion = '20250302/ofunato';
+    let currentRegion = '20250112/palisades';
 
     if (WebGPU.isAvailable() === false) {
         document.body.appendChild(WebGPU.getErrorMessage());
@@ -560,7 +560,9 @@ body { margin: 0; padding: 0; }
             ['<=', ['get', 'days'], 0]
         ]});
         for (const feature of features) {
-            customLayer.addFire(feature);
+            if (feature.tile.z >= 6) {
+                customLayer.addFire(feature);
+            }
         }
         customLayer.refreshElevation(map);
     });

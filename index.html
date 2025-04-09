@@ -147,15 +147,35 @@ body { margin: 0; padding: 0; }
     import WebGPU from 'three/addons/capabilities/WebGPU.js';
 
     const REGIONS = {
-        'north-gyeongsang': {
-            label: 'North Gyeongsang Province, South Korea',
-            center: [129.12, 36.579],
-            zoom: 14
+//        '20250112/palisades': {
+//            label: 'Palisades, LA, USA [2025-01-12]',
+//            center: [-118.527, 34.11],
+//            zoom: 14,
+//            timestamp: 1736640000
+//        },
+        '20250302/ofunato': {
+            label: 'Ofunato, Japan [2025-03-02]',
+            center: [141.8, 39.062],
+            zoom: 14,
+            timestamp: 1740873600
         },
-        'imabari': {
-            label: 'Imabari, Japan',
+        '20250326/okayama': {
+            label: 'Okayama, Japan [2025-03-26]',
+            center: [134.011, 34.583],
+            zoom: 15,
+            timestamp: 1742947200
+        },
+        '20250326/imabari': {
+            label: 'Imabari, Japan [2025-03-26]',
             center: [133.0445517, 33.988586],
-            zoom: 15
+            zoom: 15,
+            timestamp: 1742947200
+        },
+        '20250327/north-gyeongsang': {
+            label: 'North Gyeongsang Province, South Korea [2025-03-27]',
+            center: [128.782, 36.416],
+            zoom: 14,
+            timestamp: 1743033600
         }
     };
 
@@ -209,7 +229,7 @@ body { margin: 0; padding: 0; }
 
     }
 
-    let currentRegion = 'north-gyeongsang';
+    let currentRegion = '20250302/ofunato';
 
     if (WebGPU.isAvailable() === false) {
         document.body.appendChild(WebGPU.getErrorMessage());
@@ -457,7 +477,7 @@ body { margin: 0; padding: 0; }
         const {center, zoom} = REGIONS[currentRegion];
         modelOrigin = mapboxgl.MercatorCoordinate.fromLngLat(center);
         modelScale = modelOrigin.meterInMercatorCoordinateUnits();
-        map.getSource('fire').setData(`https://mini-tokyo.appspot.com/fire?region=${currentRegion}`);
+        map.getSource('fire').setData(`https://mini-tokyo.appspot.com/fire/${currentRegion}`);
         map.flyTo({center, zoom, bearing: 0, pitch: 60});
     });
     map.getContainer().appendChild(selector);
@@ -471,7 +491,7 @@ body { margin: 0; padding: 0; }
         });
         map.addSource('fire', {
             'type': 'geojson',
-            'data': `https://mini-tokyo.appspot.com/fire?region=${currentRegion}`,
+            'data': `https://mini-tokyo.appspot.com/fire/${currentRegion}`,
             'attribution': '<a href="https://firms.modaps.eosdis.nasa.gov" target="_blank">NASA</a>',
             'generateId': true
         });
@@ -536,7 +556,7 @@ body { margin: 0; padding: 0; }
     map.on('sourcedata', () => {
         const features = map.querySourceFeatures('fire', {filter: [
             'all',
-            ['==', ['get', 'region'], currentRegion],
+            ['==', ['get', 'region'], currentRegion.split('/')[1]],
             ['<=', ['get', 'days'], 0]
         ]});
         for (const feature of features) {
@@ -573,7 +593,7 @@ body { margin: 0; padding: 0; }
             );
         }
 
-        const now = Date.now() / 1000;
+        const now = REGIONS[currentRegion].timestamp || Date.now() / 1000;
         const timestamp = e.features[0].properties.timestamp;
         tooltip.style.left = e.point.x + 4 + 'px';
         tooltip.style.top = e.point.y + 4 + 'px';

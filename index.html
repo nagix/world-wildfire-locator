@@ -147,6 +147,11 @@ body { margin: 0; padding: 0; }
     import WebGPU from 'three/addons/capabilities/WebGPU.js';
 
     const REGIONS = {
+        'latest/uenohara': {
+            label: 'Uenohara',
+            center: [139.013, 35.632],
+            zoom: 14
+        },
         '20250112/palisades': {
             label: 'Palisades, LA, USA [2025-01-12]',
             center: [-118.527, 34.11],
@@ -229,7 +234,7 @@ body { margin: 0; padding: 0; }
 
     }
 
-    let currentRegion = '20250112/palisades';
+    let currentRegion = 'latest/uenohara';
 
     if (WebGPU.isAvailable() === false) {
         document.body.appendChild(WebGPU.getErrorMessage());
